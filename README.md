@@ -1,41 +1,55 @@
-# 9001 — 元修正评分系统
+# Smart Review Scoring System
 
-> 打分之后再打分，用满意度修正原始分，并识别水军干扰。
+**USYD COMP9001 — Final Project**
 
-## 核心思路
+A Python tool that goes beyond traditional star ratings. Users rate a target *and* rate how confident they feel about their own score. The system uses that confidence to adjust the final result, then filters out fake reviewers (bots/shills) before computing the aggregate.
 
-传统评分系统的问题：
-- 用户给出的分数不代表真实满意度
-- 水军刷分会严重扭曲结果
+## Core Ideas
 
-本项目的解法：
-1. **原始评分** — 用户对目标打分（0–10）
-2. **满意度修正** — 用户对"自己给出的这个分数"再打一个满意度（0–1），用于加权修正原始分
-3. **水军识别** — 通过行为特征检测异常评分，过滤后再参与汇总
+| Problem | Our Solution |
+|---------|-------------|
+| Ratings don't reflect true confidence | A *satisfaction weight* pulls uncertain scores toward the group average |
+| Bots and shills skew results | Six detection signals flag suspicious accounts before aggregation |
 
-## 项目结构
+### Correction Formula
+
+```
+adjusted = raw_score × satisfaction + group_mean × (1 − satisfaction)
+```
+
+A satisfaction of 1.0 keeps the score as-is. A satisfaction of 0.0 replaces it with the group mean — the user is saying "I'm not sure, go with the crowd."
+
+## Project Structure
 
 ```
 9001/
+├── main.py               # Demo — run this for the presentation
 ├── scorer/
-│   ├── core.py         # 评分聚合与修正逻辑
-│   ├── meta_score.py   # 满意度加权计算
-│   └── bot_detect.py   # 水军识别
+│   ├── core.py           # Review class, score adjustment, aggregation
+│   ├── meta_score.py     # Apply a satisfaction rating to a review
+│   └── bot_detect.py     # Six-signal bot detection engine
 └── tests/
-    └── test_core.py
+    ├── test_core.py
+    └── test_bot_detect.py
 ```
 
-## 快速开始
+## Python Concepts Demonstrated
+
+- **for loops** — iterating over review lists and dictionaries
+- **if / elif / else** — conditional logic in every detection signal
+- **functions** — each detection check is an isolated, testable function
+- **lists and dictionaries** — core data structures throughout
+- **classes** — `Review` and `BotSignal` model real-world entities
+- **math** — mean, variance, standard deviation for outlier detection
+
+## Quick Start
 
 ```bash
-pip install -r requirements.txt
-python -m scorer
+python main.py
 ```
 
-## 修正公式
+## Running Tests
 
+```bash
+python -m pytest tests/ -v
 ```
-adjusted_score = raw_score * satisfaction_weight + global_mean * (1 - satisfaction_weight)
-```
-
-满意度越低，分数越向全局均值收缩，降低极端打分的影响。
