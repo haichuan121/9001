@@ -1,9 +1,23 @@
+# ============================================================
+# COMP9001 Final Project  —  Smart Review Scoring System
+# Student: Qiyuan Dong
+#
+# HOW TO RUN:
+#   python app_gui.py
+#
+# LIBRARIES USED:
+#   tkinter  —  Python built-in GUI library (creates a desktop window)
+#
+# NOTE FOR TUTOR:
+#   This is a GUI application. It will NOT run inside Ed's browser
+#   terminal because a display is required.
+#   Please run it locally with:  python app_gui.py
+#   A pre-built Windows executable is also available at:
+#   https://github.com/haichuan121/9001
+# ============================================================
 """
 Smart Review Scoring System - GUI Application
 USYD COMP9001 Final Project
-
-Run:   python app_gui.py
-Build: pyinstaller --onefile --windowed app_gui.py
 """
 
 import tkinter as tk
