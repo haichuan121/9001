@@ -48,20 +48,99 @@ def compute_user_weight(history):
         return 1.0, "Normal"
 
 
+def _mean(values):
+    if len(values) == 0:
+        return 0.0
+    total = 0.0
+    for v in values:
+        total = total + v
+    return total / len(values)
+
+
+def _stddev(values):
+    if len(values) < 2:
+        return 0.0
+    m = _mean(values)
+    variance = 0.0
+    for v in values:
+        variance = variance + (v - m) ** 2
+    return (variance / len(values)) ** 0.5
+
+
+def filter_malicious(review_list):
+    """Remove malicious reviews using three standards."""
+    flagged = []
+    keep    = []
+
+    # Standard 1: formula gaming
+    for review in review_list:
+        if (review["raw"] >= 9.5 or review["raw"] <= 0.5) and review["satisfaction"] == 0.0:
+            flagged.append(review)
+        else:
+            keep.append(review)
+
+    # Standard 3: coordinated identical
+    combo_users = {}
+    for review in review_list:
+        key = (review["raw"], review["satisfaction"])
+        if key not in combo_users:
+            combo_users[key] = set()
+        combo_users[key].add(review["user"])
+
+    still_keep = []
+    for review in keep:
+        key = (review["raw"], review["satisfaction"])
+        if len(combo_users[key]) >= 3:
+            flagged.append(review)
+        else:
+            still_keep.append(review)
+    keep = still_keep
+
+    # Standard 2: statistical outlier
+    if len(keep) >= 5:
+        raws   = [r["raw"] for r in keep]
+        mean   = _mean(raws)
+        stddev = _stddev(raws)
+        if stddev > 0:
+            final_keep = []
+            for review in keep:
+                if abs(review["raw"] - mean) > 3 * stddev:
+                    flagged.append(review)
+                else:
+                    final_keep.append(review)
+            keep = final_keep
+
+    return keep, flagged
+
+
 def compute_item_score(review_list):
-    """Weighted mean: raw * satisfaction * user_weight."""
+    """New scoring logic:
+    1. Remove malicious reviews.
+    2. group_mean = mean of clean raw scores.
+    3. adjusted = raw*(1-sat) + group_mean*sat
+       sat=1 → agree with current score; sat=0 → fully use own raw score.
+    4. Final = weighted mean of adjusted, weighted by user_weight.
+    """
     if len(review_list) == 0:
         return 0.0
+
+    clean, _ = filter_malicious(review_list)
+    if len(clean) == 0:
+        return 0.0
+
+    raws       = [r["raw"] for r in clean]
+    group_mean = _mean(raws)
 
     weighted_sum = 0.0
     weight_total = 0.0
 
-    for review in review_list:
-        username = review["user"]
+    for review in clean:
+        username    = review["user"]
         user_weight = users[username]["weight"] if username in users else 1.0
-        effective = review["satisfaction"] * user_weight
-        weighted_sum = weighted_sum + review["raw"] * effective
-        weight_total = weight_total + effective
+        adjusted    = review["raw"] * (1 - review["satisfaction"]) \
+                    + group_mean    *      review["satisfaction"]
+        weighted_sum = weighted_sum + adjusted    * user_weight
+        weight_total = weight_total + user_weight
 
     if weight_total == 0.0:
         return 0.0
