@@ -130,9 +130,15 @@ def rate_item():
     print("\n  Round 1 - How do you rate this item?")
     raw = get_float("  Score (0-10): ", 0, 10)
 
-    print("\n  Round 2 - How confident are you in the score you just gave?")
-    print("  (1.0 = very sure,  0.0 = not sure at all)")
-    satisfaction = get_float("  Confidence (0-1): ", 0, 1)
+    current_score = items[name]["score"]
+    review_count  = len(items[name]["reviews"])
+    if review_count == 0:
+        print("\n  Round 2 - No overall score yet (you are the first reviewer).")
+    else:
+        print(f"\n  Round 2 - Current overall score: {current_score:.2f} / 10  ({review_count} reviews)")
+    print("  How satisfied are you with the current overall score?")
+    print("  (1.0 = fully agree  |  0.0 = strongly disagree)")
+    satisfaction = get_float("  Satisfaction (0-1): ", 0, 1)
 
     items[name]["reviews"].append({"user": username, "raw": raw, "satisfaction": satisfaction})
 

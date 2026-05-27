@@ -224,13 +224,14 @@ class SmartReviewApp:
         row_label(0, "Select item:")
         self.rate_combo = ttk.Combobox(form, state="readonly", width=28, font=FONT_LABEL)
         self.rate_combo.grid(row=0, column=1, padx=10, sticky="w")
+        self.rate_combo.bind("<<ComboboxSelected>>", self._on_item_selected)
 
         row_label(1, "Username:")
         self.rate_user = tk.Entry(form, font=FONT_LABEL, width=30)
         self.rate_user.grid(row=1, column=1, padx=10, sticky="w")
 
         # Round 1 — raw score slider
-        row_label(2, "Round 1 — Score (0-10):")
+        row_label(2, "Round 1 — Your Score (0-10):")
         score_frame = tk.Frame(form, bg=BG_MAIN)
         score_frame.grid(row=2, column=1, padx=10, sticky="w")
         self.raw_var = tk.DoubleVar(value=5.0)
@@ -242,10 +243,17 @@ class SmartReviewApp:
                  command=lambda v: self.raw_label.config(text=f"{float(v):.1f}")
                  ).pack(side="left")
 
-        # Round 2 — satisfaction slider
-        row_label(3, "Round 2 — Confidence (0-1):")
+        # Current score display (shown before Round 2)
+        row_label(3, "Current overall score:")
+        self.current_score_info = tk.Label(
+            form, text="— (select an item first)",
+            font=("Segoe UI", 11, "bold"), fg=ACCENT, bg=BG_MAIN, anchor="w")
+        self.current_score_info.grid(row=3, column=1, padx=10, sticky="w")
+
+        # Round 2 — satisfaction with current score
+        row_label(4, "Round 2 — Satisfaction (0-1):")
         sat_frame = tk.Frame(form, bg=BG_MAIN)
-        sat_frame.grid(row=3, column=1, padx=10, sticky="w")
+        sat_frame.grid(row=4, column=1, padx=10, sticky="w")
         self.sat_var = tk.DoubleVar(value=0.5)
         self.sat_label = tk.Label(sat_frame, text="0.5", font=("Segoe UI", 11, "bold"),
                                   fg=ACCENT, bg=BG_MAIN, width=4)
@@ -255,11 +263,16 @@ class SmartReviewApp:
                  command=lambda v: self.sat_label.config(text=f"{float(v):.1f}")
                  ).pack(side="left")
 
+        tk.Label(form, text="How satisfied are you with the current overall score?  "
+                            "(1.0 = fully agree  ·  0.0 = strongly disagree)",
+                 font=("Segoe UI", 9), fg="#888", bg=BG_MAIN
+                 ).grid(row=5, column=1, padx=10, sticky="w")
+
         # Submit
         tk.Button(form, text="Submit Review", font=FONT_BUTTON,
                   bg=ACCENT, fg="white", relief="flat",
                   padx=16, pady=4, command=self._do_rate_item
-                  ).grid(row=4, column=1, sticky="w", padx=10, pady=12)
+                  ).grid(row=6, column=1, sticky="w", padx=10, pady=12)
 
         # Result label
         self.rate_result = tk.Label(tab, text="", font=FONT_LABEL, bg=BG_MAIN, fg="#333")
@@ -267,6 +280,18 @@ class SmartReviewApp:
 
     def _refresh_rate_combo(self):
         self.rate_combo["values"] = list(items.keys())
+
+    def _on_item_selected(self, event=None):
+        """Update the current score label when the user picks an item."""
+        name = self.rate_combo.get()
+        if name in items:
+            score = items[name]["score"]
+            count = len(items[name]["reviews"])
+            if count == 0:
+                self.current_score_info.config(text="No reviews yet — be the first!")
+            else:
+                self.current_score_info.config(
+                    text=f"{score:.2f} / 10   ({count} review{'s' if count != 1 else ''})")
 
     def _do_rate_item(self):
         name = self.rate_combo.get()
